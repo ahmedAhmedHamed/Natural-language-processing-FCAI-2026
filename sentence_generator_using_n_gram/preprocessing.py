@@ -1,3 +1,7 @@
+"""
+all functions can be used independently, but only run_preprocessing should be used in this assignment.
+"""
+
 import string
 from typing import List
 import nltk
