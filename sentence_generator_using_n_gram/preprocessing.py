@@ -1,9 +1,11 @@
 from typing import List
-
+import nltk
 
 def tokenize_sentences_into_words(sentences: str) -> List[str]:
     """step one"""
-    pass
+    tokens = nltk.word_tokenize(sentences)
+    return tokens
+
 
 def remove_punctuation_from_tokens(tokens: List[str]) -> List[str]:
     """step two"""
