@@ -1,6 +1,7 @@
 import string
 from typing import List
 import nltk
+from nltk.corpus import stopwords
 
 def tokenize_sentences_into_words(sentences: str) -> List[str]:
     """step one"""
@@ -16,7 +17,8 @@ def remove_punctuation_from_tokens(tokens: List[str]) -> List[str]:
 
 def remove_stop_words(tokens: List[str]) -> List[str]:
     """step three"""
-    pass
+    tokens = [token for token in tokens if token not in stopwords]
+    return tokens
 
 def convert_all_tokens_to_lower_case(tokens: List[str]) -> List[str]:
     """step four"""
