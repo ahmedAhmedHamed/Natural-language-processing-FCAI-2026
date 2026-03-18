@@ -25,7 +25,7 @@ def convert_all_tokens_to_lower_case(tokens: List[str]) -> List[str]:
     tokens = [token.lower() for token in tokens]
     return tokens
 
-def build_a_set_of_vocabulary_from_pre_processed_corpus(tokens: List[str]) -> set(str):
+def build_a_set_of_vocabulary_from_pre_processed_corpus(tokens: List[str]) -> set[str]:
     """step five"""
     vocabulary_set = set(tokens)
     return vocabulary_set
