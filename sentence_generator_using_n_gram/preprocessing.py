@@ -3,6 +3,11 @@ from typing import List
 import nltk
 from nltk.corpus import stopwords
 
+nltk.download('punkt')  # for tokenization
+nltk.download('stopwords')  # for lemmatization
+nltk.download('punkt_tab')
+
+
 def tokenize_sentences_into_words(sentences: str) -> List[str]:
     """step one"""
     tokens = nltk.word_tokenize(sentences)
@@ -17,7 +22,8 @@ def remove_punctuation_from_tokens(tokens: List[str]) -> List[str]:
 
 def remove_stop_words(tokens: List[str]) -> List[str]:
     """step three"""
-    tokens = [token for token in tokens if token not in stopwords]
+    english_stopwords = set(stopwords.words('english'))
+    tokens = [token for token in tokens if token not in english_stopwords]
     return tokens
 
 def convert_all_tokens_to_lower_case(tokens: List[str]) -> List[str]:
@@ -25,10 +31,11 @@ def convert_all_tokens_to_lower_case(tokens: List[str]) -> List[str]:
     tokens = [token.lower() for token in tokens]
     return tokens
 
-def build_a_set_of_vocabulary_from_pre_processed_corpus(tokens: List[str]) -> set[str]:
+def build_a_set_of_vocabulary_from_pre_processed_corpus(tokens: List[str]) -> List[str]:
     """step five"""
     vocabulary_set = set(tokens)
-    return vocabulary_set
+    tokens = list(vocabulary_set)
+    return tokens
 
 def run_preprocessing(sentences: str):
     tokens = tokenize_sentences_into_words(sentences)
@@ -37,8 +44,12 @@ def run_preprocessing(sentences: str):
     tokens = convert_all_tokens_to_lower_case(tokens)
     # doing the set step as the first step would be faster, but I am doing this to be faithful to the assignment description
     # - Ahmed
-    vocabulary_set = build_a_set_of_vocabulary_from_pre_processed_corpus(tokens)
-    return vocabulary_set
+    tokens = build_a_set_of_vocabulary_from_pre_processed_corpus(tokens)
+    return tokens
 
 if __name__ == '__main__':
-    print(string.punctuation)
+
+    example = "The quick brown fox jumps over the lazy dog, and the dog barked loudly!"
+    print('before: --- :', example)
+    tokenized_example = run_preprocessing(example)
+    print('after: --- :', tokenized_example)
