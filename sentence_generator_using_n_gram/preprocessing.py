@@ -22,7 +22,8 @@ def remove_stop_words(tokens: List[str]) -> List[str]:
 
 def convert_all_tokens_to_lower_case(tokens: List[str]) -> List[str]:
     """step four"""
-    pass
+    tokens = [token.lower() for token in tokens]
+    return tokens
 
 def build_a_set_of_vocabulary_from_pre_processed_corpus(tokens: List[str]):
     """step five"""
