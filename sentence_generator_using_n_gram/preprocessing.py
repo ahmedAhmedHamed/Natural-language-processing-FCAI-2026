@@ -1,4 +1,5 @@
 import string
+import random
 from typing import List
 import nltk
 from nltk.corpus import stopwords
@@ -83,17 +84,43 @@ def build_ngram_dict(corpus, n):
 
     return ngrams
 
-if __name__ == '__main__':
 
-    example = "The quick brown fox jumps over the lazy dog, and the dog barked loudly!"
-    print('before: --- :', example)
-    tokenized_example = run_preprocessing(example)
-    print('after: --- :', tokenized_example)
+##################### Sentence Generation #####################
 
-    brown_tokens = get_tokens_from_brown()
-    print(f"\n-> Total tokens from Brown corpus: {len(brown_tokens)}")
-    trigrams = build_ngram_dict(brown_tokens, 3)
-    print(f"-> Dictionary: {len(trigrams)} n-grams found")
-    for k, v in trigrams.items():
-        if(v > 20):     # to avoid large number of n-grams
-            print(k, ":", v)
+def generate_sentences(ngram_dict, n, m, max_len, vocabulary):
+    """
+    Step Three: Sentence Generator
+    - Starts with a random n-1 gram
+    - Selects the word with the highest probability
+    - Stops at max_len
+    """
+    # - Farouk
+    generated_sentences = []
+
+    starting_grams = [list(gram[:-1]) for gram in ngram_dict.keys()]
+
+    for _ in range(m):
+        current_context = list(random.choice(starting_grams))
+        sentence = list(current_context)
+
+        for _ in range(max_len - len(current_context)):
+            best_word = None
+            max_prob = -1
+
+            for word in vocabulary:
+                test_gram = tuple(current_context + [word])
+                count_ngram = ngram_dict.get(test_gram, 0)
+                
+                if count_ngram > max_prob:
+                    max_prob = count_ngram
+                    best_word = word
+            
+            if best_word:
+                sentence.append(best_word)
+                current_context = sentence[-(n-1):]
+            else:
+                break
+                
+        generated_sentences.append(" ".join(sentence))
+    
+    return generated_sentences
