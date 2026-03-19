@@ -42,45 +42,45 @@ def build_a_set_of_vocabulary_from_pre_processed_corpus(tokens: List[str]) -> Li
     return tokens
 
 def run_preprocessing(sentences: str):
-    tokens = tokenize_sentences_into_words(sentences)
-    tokens = remove_punctuation_from_tokens(tokens)
-    tokens = remove_stop_words(tokens)
+    # tokens = tokenize_sentences_into_words(sentences)
+    tokens = remove_punctuation_from_tokens(sentences)
+    # tokens = remove_stop_words(tokens)
     tokens = convert_all_tokens_to_lower_case(tokens)
-    # doing the set step as the first step would be faster, but I am doing this to be faithful to the assignment description
-    # - Ahmed
     tokens = build_a_set_of_vocabulary_from_pre_processed_corpus(tokens)
     return tokens
 
 
 ##################### Dictionary Building #####################
 
-def get_tokens_from_brown(limit=200_000):
-    tokens = []
+def get_sentences_from_brown(limit=200_000):
+    sentences = []
+    count = 0
     
     for sentence in brown.sents():
-        tokens.extend(sentence)
+        sentences.append(sentence)
+        count += len(sentence)
         
-        if len(tokens) >= limit:
+        if count >= limit:
             break
     
-    return tokens[:limit]
+    return sentences    # list of sentences, each sentence is a list of tokens
 
 def build_ngram_dict(corpus, n):
-    tokens = remove_punctuation_from_tokens(corpus)
-    tokens = convert_all_tokens_to_lower_case(tokens)
-    # brown corpus is already tokenized
-    # the set step is affecting the n-gram generation order-wise, so I discarded it, besides there is no need for uniqueness in the n-gram
-    # and for the stop words, it was canceled in the last remarks ¯\_(ツ)_/¯
-    # - Noran
+    sentences = [remove_punctuation_from_tokens(sen) for sen in corpus]
+    sentences = [convert_all_tokens_to_lower_case(sen) for sen in sentences]
     ngrams = {}
 
-    for i in range(len(tokens) - n + 1):
-        gram = tuple(tokens[i:i+n])
-        
-        if gram in ngrams:
-            ngrams[gram] += 1
-        else:
-            ngrams[gram] = 1
+    for sentence in sentences:
+        tokens = sentence.copy()
+        tokens = ["<s>"] * (n - 1) + tokens + ["</s>"]  # add start and end tokens
+
+        for i in range(len(tokens) - n + 1):
+            gram = tuple(tokens[i:i+n])
+            
+            if gram in ngrams:
+                ngrams[gram] += 1
+            else:
+                ngrams[gram] = 1
 
     return ngrams
 
@@ -97,7 +97,8 @@ def generate_sentences(ngram_dict, n, m, max_len, vocabulary):
     # - Farouk
     generated_sentences = []
 
-    starting_grams = [list(gram[:-1]) for gram in ngram_dict.keys()]
+    starting_grams = [list(gram[:-1]) for gram in ngram_dict.keys() 
+                      if "<s>" not in gram[:-1] and "</s>" not in gram[:-1]]
 
     for _ in range(m):
         current_context = list(random.choice(starting_grams))
@@ -106,21 +107,51 @@ def generate_sentences(ngram_dict, n, m, max_len, vocabulary):
         for _ in range(max_len - len(current_context)):
             best_word = None
             max_prob = -1
+            used_ngrams = set() # to avoid repetition
+            candidates = []
 
             for word in vocabulary:
                 test_gram = tuple(current_context + [word])
                 count_ngram = ngram_dict.get(test_gram, 0)
                 
+                if count_ngram and test_gram not in used_ngrams:
+                    candidates.append((word, count_ngram))
+            
+            used_ngrams.add(tuple(current_context + [best_word]))
+            
+            if not candidates:
+                break
+
+            for word, count_ngram in candidates:
                 if count_ngram > max_prob:
                     max_prob = count_ngram
                     best_word = word
-            
-            if best_word:
-                sentence.append(best_word)
-                current_context = sentence[-(n-1):]
-            else:
+
+            if best_word == "</s>":
                 break
+
+            sentence.append(best_word)
+            current_context = sentence[-(n-1):]
                 
         generated_sentences.append(" ".join(sentence))
     
     return generated_sentences
+
+
+##################### Application #####################
+
+if __name__ == '__main__':
+
+    brown_corpus = get_sentences_from_brown()
+    corpus_flattened = [token for sentence in brown_corpus for token in sentence]
+    vocabulary = run_preprocessing(corpus_flattened)
+
+    n = 5
+    m = 10
+    max_len = 10
+
+    ngram_dict = build_ngram_dict(brown_corpus, n)
+    generated_sentences = generate_sentences(ngram_dict, n, m, max_len, vocabulary)
+
+    for i, sentence in enumerate(generated_sentences, 1):
+        print(f"Sentence {i}: {sentence}\n")
