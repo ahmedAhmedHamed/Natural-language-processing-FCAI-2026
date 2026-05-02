@@ -12,9 +12,17 @@ from typing import List, Tuple, Set, Dict
 from scipy.sparse import csr_matrix
 
 def _download_nltk_data() -> None:
-    nltk.download('stopwords')
-    nltk.download('punkt')
-    nltk.download('punkt_tab')
+    nltk_resources = {
+        'corpora/stopwords': 'stopwords',
+        'tokenizers/punkt': 'punkt',
+        'tokenizers/punkt_tab': 'punkt_tab'
+    }
+
+    for resource_path, resource_name in nltk_resources.items():
+        try:
+            nltk.data.find(resource_path)
+        except LookupError:
+            nltk.download(resource_name, quiet=True)
 
 def tokenize_text(text: str) -> List[str]:
     if not isinstance(text, str):
