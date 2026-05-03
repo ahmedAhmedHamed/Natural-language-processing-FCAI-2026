@@ -5,13 +5,24 @@ from nltk.tokenize import word_tokenize
 from sklearn.preprocessing import LabelEncoder
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import train_test_split
-from typing import List, Tuple, Set
+from sklearn.svm import LinearSVC
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report
+from typing import List, Tuple, Set, Dict
 from scipy.sparse import csr_matrix
 
 def _download_nltk_data() -> None:
-    nltk.download('stopwords')
-    nltk.download('punkt')
-    nltk.download('punkt_tab')
+    nltk_resources = {
+        'corpora/stopwords': 'stopwords',
+        'tokenizers/punkt': 'punkt',
+        'tokenizers/punkt_tab': 'punkt_tab'
+    }
+
+    for resource_path, resource_name in nltk_resources.items():
+        try:
+            nltk.data.find(resource_path)
+        except LookupError:
+            nltk.download(resource_name, quiet=True)
 
 def tokenize_text(text: str) -> List[str]:
     if not isinstance(text, str):
@@ -57,9 +68,57 @@ def step4_split_data(feature_vectors: csr_matrix, target_labels: pd.Series) -> T
     )
     return features_training_set, features_testing_set, labels_training_set, labels_testing_set
 
+def step5_train_classifiers(features_training_set: csr_matrix, labels_training_set: pd.Series) -> Dict[str, object]:
+    trained_models: Dict[str, object] = {
+        "SVM": LinearSVC(),
+        "Logistic Regression": LogisticRegression(max_iter=1000)
+    }
+
+    for model in trained_models.values():
+        model.fit(features_training_set, labels_training_set)
+
+    return trained_models
+
+def step6_print_classification_reports(
+    trained_models: Dict[str, object],
+    features_testing_set: csr_matrix,
+    labels_testing_set: pd.Series,
+    dataset_label_encoder: LabelEncoder
+) -> None:
+    target_names = list(dataset_label_encoder.classes_)
+
+    for model_name, model in trained_models.items():
+        predictions = model.predict(features_testing_set)
+        print(f"\nClassification Report - {model_name}")
+        print(
+            classification_report(
+                labels_testing_set,
+                predictions,
+                target_names=target_names,
+                zero_division=0
+            )
+        )
+
+def step7_predict_user_review(
+    trained_model: object,
+    dataset_tfidf_vectorizer: TfidfVectorizer,
+    dataset_label_encoder: LabelEncoder,
+    stop_words: Set[str]
+) -> None:
+    user_review = input("\nEnter a new review to classify (or press Enter to skip): ").strip()
+    if not user_review:
+        print("No input entered. Skipping user review prediction.")
+        return
+
+    processed_user_review = process_single_review(user_review, stop_words)
+    user_vector = dataset_tfidf_vectorizer.transform([processed_user_review])
+    predicted_label_id = trained_model.predict(user_vector)
+    predicted_label_name = dataset_label_encoder.inverse_transform(predicted_label_id)[0]
+    print(f"Predicted sentiment: {predicted_label_name}")
+
 def run_pipeline(csv_file_path: str = 'amazon_reviews.csv', 
                  text_column_name: str = 'cleaned_review', 
-                 label_column_name: str = 'sentiments') -> Tuple[csr_matrix, csr_matrix, pd.Series, pd.Series, LabelEncoder, TfidfVectorizer]:
+                 label_column_name: str = 'sentiments') -> Tuple[Dict[str, object], LabelEncoder, TfidfVectorizer]:
     reviews_dataframe = pd.read_csv(csv_file_path)
     
     reviews_dataframe = step1_preprocess_reviews(reviews_dataframe, text_column_name)
@@ -70,12 +129,27 @@ def run_pipeline(csv_file_path: str = 'amazon_reviews.csv',
     
     target_labels = reviews_dataframe[label_column_name]
     features_training_set, features_testing_set, labels_training_set, labels_testing_set = step4_split_data(feature_vectors, target_labels)
+    trained_models = step5_train_classifiers(features_training_set, labels_training_set)
+    step6_print_classification_reports(
+        trained_models,
+        features_testing_set,
+        labels_testing_set,
+        dataset_label_encoder
+    )
+
+    english_stopwords: Set[str] = set(stopwords.words('english'))
+    step7_predict_user_review(
+        trained_model=trained_models["Logistic Regression"],
+        dataset_tfidf_vectorizer=dataset_tfidf_vectorizer,
+        dataset_label_encoder=dataset_label_encoder,
+        stop_words=english_stopwords
+    )
 
     print(f"Original dataset shape: {reviews_dataframe.shape}")
     print(f"Training set: {features_training_set.shape[0]} samples")
     print(f"Testing set: {features_testing_set.shape[0]} samples")
     
-    return features_training_set, features_testing_set, labels_training_set, labels_testing_set, dataset_label_encoder, dataset_tfidf_vectorizer
+    return trained_models, dataset_label_encoder, dataset_tfidf_vectorizer
 
 if __name__ == "__main__":
     run_pipeline()
