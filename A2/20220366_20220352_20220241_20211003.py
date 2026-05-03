@@ -153,3 +153,4 @@ def run_pipeline(csv_file_path: str = 'amazon_reviews.csv',
 
 if __name__ == "__main__":
     run_pipeline()
+
